@@ -1,4 +1,5 @@
 import uuid
+import warnings
 
 from cytoolz import (
     compose,
@@ -11,14 +12,34 @@ from web3.utils.compat import (
 
 
 class RequestManager(object):
-    def __init__(self, provider, middlewares=None):
-        if middlewares is None:
-            middlewares = tuple()
+    def __init__(self, provider, middleware_classes=None):
+        if middleware_classes is None:
+            middleware_classes = tuple()
+
         self.pending_requests = {}
-        self.middlewares = middlewares
+        self.middleware_classes = middleware_classes
         self.provider = provider
 
+    _provider = None
+
+    @property
+    def provider(self):
+        return self._provider
+
+    @provider.setter
+    def provider(self, value):
+        self._provider = value
+        self.middlewares = tuple(
+            middleware_class(value)
+            for middleware_class
+            in self.middleware_classes
+        )
+
     def setProvider(self, provider):
+        warnings.warn(DeprecationWarning(
+            "The `setProvider` API has been deprecated.  You should update your "
+            "code to directly set the `manager.provider` property."
+        ))
         self.provider = provider
 
     #
@@ -29,7 +50,9 @@ class RequestManager(object):
     def _process_request(self, request_id, request):
         """
         `raw_method` and `raw_params` are the original values for the RPC
-        request.  Each middleware may modify these in arbitrary ways.  The `request_id` is a unique value for the given request which will be passed in with the response as well
+        request.  Each middleware may modify these in arbitrary ways.  The
+        `request_id` is a unique value for the given request which will be
+        passed in with the response as well
         """
         return compose(*(
             partial(middleware.process_request, request_id=request_id)
