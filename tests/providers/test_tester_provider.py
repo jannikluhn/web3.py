@@ -13,6 +13,6 @@ def test_making_provider_request():
     provider = EthereumTesterProvider()
     rm = RequestManager(provider)
 
-    response = rm.request_blocking(raw_method="web3_clientVersion", raw_params=[])
+    response = rm.request_blocking(method="web3_clientVersion", params=[])
 
     assert response == RPCMethods.web3_clientVersion()

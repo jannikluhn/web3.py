@@ -4,6 +4,9 @@ from web3.providers.tester import (
     EthereumTesterProvider,
     TestRPCProvider,
 )
+from web3.middleware import (
+    GethFormattingMiddleware,
+)
 from web3.utils.compat import (
     Timeout,
     sleep,
@@ -92,4 +95,4 @@ def wait_for_transaction():
 @pytest.fixture()
 def web3():
     provider = EthereumTesterProvider()
-    return Web3(provider)
+    return Web3(provider, middleware_classes=[GethFormattingMiddleware])

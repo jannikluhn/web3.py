@@ -89,7 +89,6 @@ class Eth(object):
         raise NotImplementedError("Async calling has not been implemented")
 
     @property
-    @apply_formatters_to_return(to_decimal)
     def gasPrice(self):
         return self.web3._requestManager.request_blocking("eth_gasPrice", [])
 

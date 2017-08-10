@@ -41,7 +41,7 @@ from web3.providers.tester import (
 from web3.providers.ipc import (
     IPCProvider,
 )
-from web3.providers.manager import (
+from web3.manager import (
     RequestManager,
 )
 
@@ -85,8 +85,8 @@ class Web3(object):
     isChecksumAddress = staticmethod(is_checksum_address)
     toChecksumAddress = staticmethod(to_checksum_address)
 
-    def __init__(self, provider):
-        self._requestManager = RequestManager(provider)
+    def __init__(self, provider, middleware_classes=None):
+        self._requestManager = RequestManager(provider, middleware_classes=middleware_classes)
 
         self.eth = Eth(self)
         self.db = Db(self)

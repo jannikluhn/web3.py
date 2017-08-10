@@ -1,9 +1,8 @@
 import uuid
 import warnings
 
-from cytoolz import (
-    compose,
-    partial,
+from web3.middleware import (
+    wrap_provider_request,
 )
 
 from web3.utils.compat import (
@@ -20,6 +19,7 @@ class RequestManager(object):
         self.middleware_classes = middleware_classes
         self.provider = provider
 
+    middlewares = None
     _provider = None
 
     @property
@@ -43,47 +43,27 @@ class RequestManager(object):
         self.provider = provider
 
     #
-    # Middleware
-    #
-    middlewares = None
-
-    def _process_request(self, request_id, request):
-        """
-        `raw_method` and `raw_params` are the original values for the RPC
-        request.  Each middleware may modify these in arbitrary ways.  The
-        `request_id` is a unique value for the given request which will be
-        passed in with the response as well
-        """
-        return compose(*(
-            partial(middleware.process_request, request_id=request_id)
-            for middleware
-            in reversed(self.middlewares)
-        ))(request)
-
-    def _process_response(self, request_id, response):
-        return compose(*(
-            partial(middleware.process_request, request_id=request_id)
-            for middleware
-            in self.middlewares
-        ))(response)
-
-    #
     # Provider requests and response
     #
     def _get_request_id(self):
         request_id = uuid.uuid4()
         return request_id
 
-    def request_blocking(self, raw_method, raw_params, request_id=None):
+    def _make_request(self, method, params, request_id):
+        return wrap_provider_request(
+            middlewares=self.middlewares,
+            request_fn=self.provider.make_request,
+            request_id=request_id,
+        )((method, params))
+
+    def request_blocking(self, method, params, request_id=None):
         """
         Make a synchronous request using the provider
         """
         if request_id is None:
             request_id = self._get_request_id()
 
-        method, params = self._process_request(request_id, (raw_method, raw_params))
-        raw_response = self.provider.make_request(method, params)
-        response = self._process_response(request_id, raw_response)
+        response = self._make_request(method, params, request_id)
 
         if "error" in response:
             raise ValueError(response["error"])
