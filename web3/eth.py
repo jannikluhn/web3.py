@@ -65,11 +65,9 @@ class Eth(object):
         raise NotImplementedError("Async calling has not been implemented")
 
     @property
-    @coerce_return_to_text
     def coinbase(self):
         return self.web3._requestManager.request_blocking("eth_coinbase", [])
 
-    @coerce_return_to_text
     def getCoinbase(self):
         raise NotImplementedError("Async calling has not been implemented")
 
@@ -121,14 +119,9 @@ class Eth(object):
             block_identifier = self.defaultBlock
         return self.web3._requestManager.request_blocking(
             "eth_getStorageAt",
-            [
-                account,
-                self.web3.toHex(position),
-                formatters.input_block_identifier_formatter(block_identifier),
-            ],
+            [account, position, block_identifier]
         )
 
-    @coerce_return_to_text
     def getCode(self, account, block_identifier=None):
         if block_identifier is None:
             block_identifier = self.defaultBlock
@@ -177,7 +170,6 @@ class Eth(object):
         """
         raise NotImplementedError("TODO")
 
-    @apply_formatters_to_return(formatters.output_transaction_formatter)
     def getTransaction(self, transaction_hash):
         return self.web3._requestManager.request_blocking(
             "eth_getTransactionByHash",

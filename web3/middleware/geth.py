@@ -3,14 +3,16 @@ from __future__ import absolute_import
 import codecs
 
 from cytoolz.functoolz import (
+    compose,
     curry,
-    identity,
+    complement,
 )
 
 from eth_utils import (
     to_list,
     to_dict,
     is_integer,
+    is_null,
 )
 
 from .formatting import (
@@ -58,13 +60,33 @@ def apply_formatter_if(formatter, condition, value):
 
 @curry
 @to_dict
-def apply_formatters_to_dict(formatters, value, default_formatter=identity):
+def apply_formatters_to_dict(formatters, value):
     for key, item in value.items():
-        formatter = formatters.get(key, default_formatter)
-        yield key, formatter(item)
+        if key in formatters:
+            yield key, formatters[key](item)
+        else:
+            yield key, item
 
 
 block_number_formatter = apply_formatter_if(hex, is_integer)
+
+is_not_null = complement(is_null)
+
+
+TRANSACTION_FORMATTERS = {
+    'blockNumber': apply_formatter_if(hex_to_integer, is_not_null),
+    'transactionIndex': apply_formatter_if(hex_to_integer, is_not_null),
+    'nonce': hex_to_integer,
+    'gas': hex_to_integer,
+    'gasPrice': hex_to_integer,
+    'value': hex_to_integer,
+    'from': bytes_to_ascii,
+    'to': bytes_to_ascii,
+    'hash': bytes_to_ascii,
+}
+
+
+transaction_formatter = apply_formatters_to_dict(TRANSACTION_FORMATTERS)
 
 
 class GethFormattingMiddleware(BaseFormatterMiddleware):
@@ -79,6 +101,10 @@ class GethFormattingMiddleware(BaseFormatterMiddleware):
             block_number_formatter,
             1,
         ),
+        'eth_getStorageAt': compose(
+            apply_formatter_at_index(hex, 1),
+            apply_formatter_at_index(block_number_formatter, 2),
+        ),
     }
     result_formatters = {
         'eth_gasPrice': hex_to_integer,
@@ -87,4 +113,7 @@ class GethFormattingMiddleware(BaseFormatterMiddleware):
         'eth_accounts': apply_formatter_to_iterable(bytes_to_ascii),
         'eth_getBlockTransactionCountByHash': hex_to_integer,
         'eth_getBlockTransactionCountByNumber': hex_to_integer,
+        'eth_coinbase': bytes_to_ascii,
+        'eth_getCode': bytes_to_ascii,
+        'eth_getTransactionByHash': apply_formatter_if(transaction_formatter, is_not_null),
     }
