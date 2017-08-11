@@ -26,7 +26,7 @@ class Personal(object):
             pass
         else:
             raise ValueError("Unknown private key format")
-        return self.web3._requestManager.request_blocking(
+        return self.web3.manager.request_blocking(
             "personal_importRawKey",
             [private_key, passphrase],
         )
@@ -44,14 +44,14 @@ class Personal(object):
         if not password:
             raise ValueError("Cannot have an empty password")
 
-        return self.web3._requestManager.request_blocking(
+        return self.web3.manager.request_blocking(
             "personal_newAccount", [password],
         )
 
     @property
     @coerce_return_to_text
     def listAccounts(self):
-        return self.web3._requestManager.request_blocking(
+        return self.web3.manager.request_blocking(
             "personal_listAccounts", [],
         )
 
@@ -61,20 +61,20 @@ class Personal(object):
 
     @coerce_return_to_text
     def signAndSendTransaction(self, transaction, passphrase):
-        return self.web3._requestManager.request_blocking(
+        return self.web3.manager.request_blocking(
             # "personal_sendTransaction",
             "personal_signAndSendTransaction",
             [transaction, passphrase],
         )
 
     def lockAccount(self, account):
-        return self.web3._requestManager.request_blocking(
+        return self.web3.manager.request_blocking(
             "personal_lockAccount",
             [account],
         )
 
     def unlockAccount(self, account, passphrase, duration=None):
-        return self.web3._requestManager.request_blocking(
+        return self.web3.manager.request_blocking(
             "personal_unlockAccount",
             [account, passphrase, duration],
         )

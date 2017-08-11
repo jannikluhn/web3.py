@@ -2,6 +2,10 @@ from __future__ import absolute_import
 
 import codecs
 
+from cytoolz.curried import (
+    keymap,
+    valmap,
+)
 from cytoolz.functoolz import (
     compose,
     curry,
@@ -165,8 +169,37 @@ SYNCING_FORMATTERS = {
 syncing_formatter = apply_formatters_to_dict(SYNCING_FORMATTERS)
 
 
+TRANSACTION_POOL_CONTENT_FORMATTERS = {
+    'pending': compose(
+        keymap(bytes_to_ascii),
+        valmap(transaction_formatter),
+    ),
+    'queued': compose(
+        keymap(bytes_to_ascii),
+        valmap(transaction_formatter),
+    ),
+}
+
+
+transaction_pool_content_formatter = apply_formatters_to_dict(
+    TRANSACTION_POOL_CONTENT_FORMATTERS
+)
+
+
+TRANSACTION_POOL_INSPECT_FORMATTERS = {
+    'pending': keymap(bytes_to_ascii),
+    'queued': keymap(bytes_to_ascii),
+}
+
+
+transaction_pool_inspect_formatter = apply_formatters_to_dict(
+    TRANSACTION_POOL_INSPECT_FORMATTERS
+)
+
+
 class GethFormattingMiddleware(BaseFormatterMiddleware):
     request_formatters = {
+        # Eth
         'eth_call': apply_formatter_at_index(transaction_params_formatter, 0),
         'eth_getBalance': apply_formatter_at_index(block_number_formatter, 1),
         'eth_getBlockByNumber': apply_formatter_at_index(block_number_formatter, 0),
@@ -192,6 +225,7 @@ class GethFormattingMiddleware(BaseFormatterMiddleware):
         'eth_sendTransaction': apply_formatter_at_index(transaction_params_formatter, 0),
     }
     result_formatters = {
+        # Eth
         'eth_accounts': apply_formatter_to_iterable(bytes_to_ascii),
         'eth_blockNumber': hex_to_integer,
         'eth_coinbase': bytes_to_ascii,
@@ -219,7 +253,16 @@ class GethFormattingMiddleware(BaseFormatterMiddleware):
             is_not_null,
         ),
         'eth_hashrate': hex_to_integer,
+        'eth_protocolVersion': hex_to_integer,
         'eth_sendRawTransaction': bytes_to_ascii,
         'eth_sendTransaction': bytes_to_ascii,
         'eth_syncing': apply_formatter_if(syncing_formatter, is_dict),
+        # Network
+        'net_version': hex_to_integer,
+        'net_peerCount': hex_to_integer,
+        # SHH
+        'shh_version': hex_to_integer,
+        # Transaction Pool
+        'txpool_content': transaction_pool_content_formatter,
+        'txpool_inspect': transaction_pool_inspect_formatter,
     }
