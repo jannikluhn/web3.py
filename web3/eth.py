@@ -1,3 +1,7 @@
+from cytoolz.dicttoolz import (
+    assoc,
+)
+
 from eth_utils import (
     is_address,
     is_integer,
@@ -19,19 +23,10 @@ from web3.utils.blocks import (
 from web3.utils.empty import (
     empty,
 )
-from web3.utils.encoding import (
-    to_decimal,
-)
 from web3.utils.filters import (
     BlockFilter,
     TransactionFilter,
     LogFilter,
-)
-from web3.utils.functional import (
-    apply_formatters_to_return,
-)
-from web3.utils.transactions import (
-    get_buffered_gas_estimate,
 )
 from web3.utils.validation import (
     validate_address_checksum,
@@ -54,7 +49,6 @@ class Eth(object):
         raise NotImplementedError()
 
     @property
-    @apply_formatters_to_return(formatters.syncing_formatter)
     def syncing(self):
         return self.web3._requestManager.request_blocking("eth_syncing", [])
 
@@ -130,7 +124,6 @@ class Eth(object):
             [account, block_identifier],
         )
 
-    @apply_formatters_to_return(formatters.output_block_formatter)
     def getBlock(self, block_identifier, full_transactions=False):
         """
         `eth_getBlockByHash`
@@ -143,10 +136,7 @@ class Eth(object):
 
         return self.web3._requestManager.request_blocking(
             method,
-            [
-                formatters.input_block_identifier_formatter(block_identifier),
-                full_transactions,
-            ],
+            [block_identifier, full_transactions],
         )
 
     def getBlockTransactionCount(self, block_identifier):
@@ -176,7 +166,6 @@ class Eth(object):
             [transaction_hash],
         )
 
-    @apply_formatters_to_return(formatters.output_transaction_formatter)
     def getTransactionFromBlock(self, block_identifier, transaction_index):
         """
         `eth_getTransactionByBlockHashAndIndex`
@@ -188,20 +177,15 @@ class Eth(object):
             method = 'eth_getTransactionByBlockHashAndIndex'
         return self.web3._requestManager.request_blocking(
             method,
-            [
-                formatters.input_block_identifier_formatter(block_identifier),
-                transaction_index,
-            ],
+            [block_identifier, transaction_index],
         )
 
-    @apply_formatters_to_return(formatters.output_transaction_receipt_formatter)
     def getTransactionReceipt(self, transaction_hash):
         return self.web3._requestManager.request_blocking(
             "eth_getTransactionReceipt",
             [transaction_hash],
         )
 
-    @apply_formatters_to_return(to_decimal)
     def getTransactionCount(self, account, block_identifier=None):
         if block_identifier is None:
             block_identifier = self.defaultBlock
@@ -209,27 +193,21 @@ class Eth(object):
             "eth_getTransactionCount",
             [
                 account,
-                formatters.input_block_identifier_formatter(block_identifier),
+                block_identifier,
             ],
         )
 
-    @coerce_return_to_text
     def sendTransaction(self, transaction):
-        formatted_transaction = formatters.input_transaction_formatter(self, transaction)
-        if 'gas' not in formatted_transaction and 'data' in formatted_transaction:
-            formatted_transaction['gas'] = get_buffered_gas_estimate(
-                self.web3,
-                transaction=formatted_transaction,
-            )
-        elif 'gas' not in formatted_transaction:
-            formatted_transaction['gas'] = 90000
+        # TODO: reintroduce gas estimation in middleware
+        # TODO: move to middleware
+        if 'from' not in transaction and is_address(self.defaultAccount):
+            transaction = assoc(transaction, 'from', self.defaultAccount)
 
         return self.web3._requestManager.request_blocking(
             "eth_sendTransaction",
-            [formatters.input_transaction_formatter(self, formatted_transaction)],
+            [transaction],
         )
 
-    @coerce_return_to_text
     def sendRawTransaction(self, raw_transaction):
         return self.web3._requestManager.request_blocking(
             "eth_sendRawTransaction",
@@ -243,23 +221,24 @@ class Eth(object):
         )
 
     def call(self, transaction, block_identifier=None):
-        formatted_transaction = formatters.input_transaction_formatter(self, transaction)
+        # TODO: move to middleware
+        if 'from' not in transaction and is_address(self.defaultAccount):
+            transaction = assoc(transaction, 'from', self.defaultAccount)
+
         if block_identifier is None:
             block_identifier = self.defaultBlock
+
         return self.web3._requestManager.request_blocking(
             "eth_call",
-            [
-                formatted_transaction,
-                formatters.input_block_identifier_formatter(block_identifier),
-            ],
+            [transaction, block_identifier],
         )
 
-    @apply_formatters_to_return(to_decimal)
     def estimateGas(self, transaction):
-        formatted_transaction = formatters.input_transaction_formatter(self, transaction)
+        if is_address(self.defaultAccount):
+            transaction.setdefault('from', self.defaultAccount)
         return self.web3._requestManager.request_blocking(
             "eth_estimateGas",
-            [formatted_transaction],
+            [transaction],
         )
 
     def filter(self, filter_params):
@@ -289,13 +268,11 @@ class Eth(object):
         else:
             raise ValueError("Must provide either a string or a valid filter object")
 
-    @apply_formatters_to_return(formatters.log_array_formatter)
     def getFilterChanges(self, filter_id):
         return self.web3._requestManager.request_blocking(
             "eth_getFilterChanges", [filter_id],
         )
 
-    @apply_formatters_to_return(formatters.log_array_formatter)
     def getFilterLogs(self, filter_id):
         return self.web3._requestManager.request_blocking(
             "eth_getFilterLogs", [filter_id],

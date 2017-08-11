@@ -13,6 +13,7 @@ from eth_utils import (
     to_dict,
     is_integer,
     is_null,
+    is_dict,
 )
 
 from .formatting import (
@@ -68,9 +69,28 @@ def apply_formatters_to_dict(formatters, value):
             yield key, item
 
 
+@curry
+@to_list
+def apply_formatter_to_array(formatter, value):
+    for item in value:
+        yield formatter(item)
+
+
 block_number_formatter = apply_formatter_if(hex, is_integer)
 
 is_not_null = complement(is_null)
+
+
+# TODO: decide what inputs this allows.
+TRANSACTION_PARAMS_FORMATTERS = {
+    'value': hex,
+    'gas': hex,
+    'gasPrice': hex,
+    'nonce': hex,
+}
+
+
+transaction_params_formatter = apply_formatters_to_dict(TRANSACTION_PARAMS_FORMATTERS)
 
 
 TRANSACTION_FORMATTERS = {
@@ -89,6 +109,62 @@ TRANSACTION_FORMATTERS = {
 transaction_formatter = apply_formatters_to_dict(TRANSACTION_FORMATTERS)
 
 
+LOG_ENTRY_FORMATTERS = {
+    'blockHash': apply_formatter_if(bytes_to_ascii, is_not_null),
+    'blockNumber': apply_formatter_if(hex_to_integer, is_not_null),
+    'transactionIndex': apply_formatter_if(hex_to_integer, is_not_null),
+    'logIndex': hex_to_integer,
+    'address': bytes_to_ascii,
+}
+
+
+log_entry_formatter = apply_formatters_to_dict(LOG_ENTRY_FORMATTERS)
+
+
+RECEIPT_FORMATTERS = {
+    'blockHash': apply_formatter_if(bytes_to_ascii, is_not_null),
+    'blockNumber': apply_formatter_if(hex_to_integer, is_not_null),
+    'transactionIndex': apply_formatter_if(hex_to_integer, is_not_null),
+    'transactionHash': bytes_to_ascii,
+    'cumulativeGasUsed': hex_to_integer,
+    'gasUsed': hex_to_integer,
+    'contractAddress': apply_formatter_if(bytes_to_ascii, is_not_null),
+    'logs': apply_formatter_to_array(log_entry_formatter),
+}
+
+
+receipt_formatter = apply_formatters_to_dict(RECEIPT_FORMATTERS)
+
+BLOCK_FORMATTERS = {
+    'gasLimit': hex_to_integer,
+    'gasUsed': hex_to_integer,
+    'size': hex_to_integer,
+    'timestamp': hex_to_integer,
+    'hash': bytes_to_ascii,
+    'number': apply_formatter_if(hex_to_integer, is_not_null),
+    'difficulty': hex_to_integer,
+    'totalDifficulty': hex_to_integer,
+    'transactions': apply_formatter_to_array(
+        apply_formatter_if(transaction_formatter, is_dict)
+    ),
+}
+
+
+block_formatter = apply_formatters_to_dict(BLOCK_FORMATTERS)
+
+
+SYNCING_FORMATTERS = {
+    'startingBlock': hex_to_integer,
+    'currentBlock': hex_to_integer,
+    'highestBlock': hex_to_integer,
+    'knownStates': hex_to_integer,
+    'pulledStates': hex_to_integer,
+}
+
+
+syncing_formatter = apply_formatters_to_dict(SYNCING_FORMATTERS)
+
+
 class GethFormattingMiddleware(BaseFormatterMiddleware):
     request_formatters = {
         'eth_getBalance': apply_formatter_at_index(block_number_formatter, 1),
@@ -105,6 +181,15 @@ class GethFormattingMiddleware(BaseFormatterMiddleware):
             apply_formatter_at_index(hex, 1),
             apply_formatter_at_index(block_number_formatter, 2),
         ),
+        'eth_getTransactionByBlockNumberAndIndex': compose(
+            apply_formatter_at_index(block_number_formatter, 0),
+            apply_formatter_at_index(hex, 1),
+        ),
+        'eth_getTransactionByBlockHashAndIndex': apply_formatter_at_index(hex, 1),
+        'eth_sendTransaction': apply_formatter_at_index(transaction_params_formatter, 0),
+        'eth_call': apply_formatter_at_index(transaction_params_formatter, 0),
+        'eth_getBlockByNumber': apply_formatter_at_index(block_number_formatter, 0),
+        'eth_getTransactionCount': apply_formatter_at_index(block_number_formatter, 1),
     }
     result_formatters = {
         'eth_gasPrice': hex_to_integer,
@@ -116,4 +201,25 @@ class GethFormattingMiddleware(BaseFormatterMiddleware):
         'eth_coinbase': bytes_to_ascii,
         'eth_getCode': bytes_to_ascii,
         'eth_getTransactionByHash': apply_formatter_if(transaction_formatter, is_not_null),
+        'eth_getTransactionByBlockHashAndIndex': apply_formatter_if(
+            transaction_formatter,
+            is_not_null,
+        ),
+        'eth_getTransactionByBlockNumberAndIndex': apply_formatter_if(
+            transaction_formatter,
+            is_not_null,
+        ),
+        'eth_getTransactionReceipt': apply_formatter_if(
+            receipt_formatter,
+            is_not_null,
+        ),
+        'eth_getTransactionCount': hex_to_integer,
+        'eth_sendTransaction': bytes_to_ascii,
+        'eth_sendRawTransaction': bytes_to_ascii,
+        'eth_estimateGas': hex_to_integer,
+        'eth_getBlockByNumber': block_formatter,
+        'eth_getBlockByHash': block_formatter,
+        'eth_getFilterChanges': apply_formatter_to_array(log_entry_formatter),
+        'eth_getFilterLogs': apply_formatter_to_array(log_entry_formatter),
+        'eth_syncing': apply_formatter_if(syncing_formatter, is_dict),
     }
