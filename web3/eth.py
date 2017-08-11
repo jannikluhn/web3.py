@@ -108,16 +108,12 @@ class Eth(object):
     def getBlockNumber(self, *args, **kwargs):
         raise NotImplementedError("Async calling has not been implemented")
 
-    @apply_formatters_to_return(to_decimal)
     def getBalance(self, account, block_identifier=None):
         if block_identifier is None:
             block_identifier = self.defaultBlock
         return self.web3._requestManager.request_blocking(
             "eth_getBalance",
-            [
-                account,
-                formatters.input_block_identifier_formatter(block_identifier),
-            ],
+            [account, block_identifier],
         )
 
     def getStorageAt(self, account, position, block_identifier=None):
@@ -138,10 +134,7 @@ class Eth(object):
             block_identifier = self.defaultBlock
         return self.web3._requestManager.request_blocking(
             "eth_getCode",
-            [
-                account,
-                formatters.input_block_identifier_formatter(block_identifier),
-            ],
+            [account, block_identifier],
         )
 
     @apply_formatters_to_return(formatters.output_block_formatter)
@@ -163,7 +156,6 @@ class Eth(object):
             ],
         )
 
-    @apply_formatters_to_return(to_decimal)
     def getBlockTransactionCount(self, block_identifier):
         """
         `eth_getBlockTransactionCountByHash`
@@ -175,7 +167,7 @@ class Eth(object):
             method = 'eth_getBlockTransactionCountByHash'
         return self.web3._requestManager.request_blocking(
             method,
-            [formatters.input_block_identifier_formatter(block_identifier)],
+            [block_identifier],
         )
 
     def getUncle(self, block_identifier):
