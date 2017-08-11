@@ -45,7 +45,7 @@ def sleep_interval():
 def skip_if_testrpc():
 
     def _skip_if_testrpc(web3):
-        if isinstance(web3.currentProvider, (TestRPCProvider, EthereumTesterProvider)):
+        if isinstance(web3.provider, (TestRPCProvider, EthereumTesterProvider)):
             pytest.skip()
     return _skip_if_testrpc
 
@@ -69,7 +69,7 @@ def wait_for_block():
             while True:
                 if web3.eth.blockNumber >= block_number:
                     break
-                if isinstance(web3.currentProvider, (TestRPCProvider, EthereumTesterProvider)):
+                if isinstance(web3.provider, (TestRPCProvider, EthereumTesterProvider)):
                     web3.manager.request_blocking("evm_mine", [])
                 sleep(poll_delay_counter())
                 timeout.check()

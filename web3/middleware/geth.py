@@ -15,6 +15,7 @@ from cytoolz.functoolz import (
 from eth_utils import (
     to_list,
     to_dict,
+    to_normalized_address,
     is_integer,
     is_null,
     is_dict,
@@ -118,7 +119,9 @@ LOG_ENTRY_FORMATTERS = {
     'blockNumber': apply_formatter_if(hex_to_integer, is_not_null),
     'transactionIndex': apply_formatter_if(hex_to_integer, is_not_null),
     'logIndex': hex_to_integer,
-    'address': bytes_to_ascii,
+    'address': to_normalized_address,
+    'topics': apply_formatter_to_array(bytes_to_ascii),
+    'data': bytes_to_ascii,
 }
 
 
@@ -253,13 +256,9 @@ class GethFormattingMiddleware(BaseFormatterMiddleware):
             is_not_null,
         ),
         'eth_hashrate': hex_to_integer,
-        'eth_protocolVersion': hex_to_integer,
         'eth_sendRawTransaction': bytes_to_ascii,
         'eth_sendTransaction': bytes_to_ascii,
         'eth_syncing': apply_formatter_if(syncing_formatter, is_dict),
-        # Network
-        'net_version': hex_to_integer,
-        'net_peerCount': hex_to_integer,
         # SHH
         'shh_version': hex_to_integer,
         # Transaction Pool
