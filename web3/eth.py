@@ -37,7 +37,6 @@ class Eth(object):
     def __init__(self, web3):
         self.web3 = web3
         self.iban = Iban
-        # self.sendIBANTransaction = lambda: raise NotImplementedError()
 
     defaultAccount = empty
     defaultBlock = "latest"
@@ -52,53 +51,29 @@ class Eth(object):
     def syncing(self):
         return self.web3._requestManager.request_blocking("eth_syncing", [])
 
-    def getSyncing(self, *args, **kwargs):
-        raise NotImplementedError("Async calling has not been implemented")
-
-    def isSyncing(self, *args, **kwargs):
-        raise NotImplementedError("Async calling has not been implemented")
-
     @property
     def coinbase(self):
         return self.web3._requestManager.request_blocking("eth_coinbase", [])
-
-    def getCoinbase(self):
-        raise NotImplementedError("Async calling has not been implemented")
 
     @property
     def mining(self):
         return self.web3._requestManager.request_blocking("eth_mining", [])
 
-    def getMining(self, *args, **kwargs):
-        raise NotImplementedError("Async calling has not been implemented")
-
     @property
     def hashrate(self):
         return self.web3._requestManager.request_blocking("eth_hashrate", [])
-
-    def getHashrate(self, *args, **kwargs):
-        raise NotImplementedError("Async calling has not been implemented")
 
     @property
     def gasPrice(self):
         return self.web3._requestManager.request_blocking("eth_gasPrice", [])
 
-    def getGasPrice(self, *args, **kwargs):
-        raise NotImplementedError("Async calling has not been implemented")
-
     @property
     def accounts(self):
         return self.web3._requestManager.request_blocking("eth_accounts", [])
 
-    def getAccounts(self, *args, **kwargs):
-        raise NotImplementedError("Async calling has not been implemented")
-
     @property
     def blockNumber(self):
         return self.web3._requestManager.request_blocking("eth_blockNumber", [])
-
-    def getBlockNumber(self, *args, **kwargs):
-        raise NotImplementedError("Async calling has not been implemented")
 
     def getBalance(self, account, block_identifier=None):
         if block_identifier is None:
@@ -225,6 +200,7 @@ class Eth(object):
         if 'from' not in transaction and is_address(self.defaultAccount):
             transaction = assoc(transaction, 'from', self.defaultAccount)
 
+        # TODO: move to middleware
         if block_identifier is None:
             block_identifier = self.defaultBlock
 
@@ -234,8 +210,10 @@ class Eth(object):
         )
 
     def estimateGas(self, transaction):
+        # TODO: move to middleware
         if is_address(self.defaultAccount):
-            transaction.setdefault('from', self.defaultAccount)
+            transaction = assoc(transaction, 'from', self.defaultAccount)
+
         return self.web3._requestManager.request_blocking(
             "eth_estimateGas",
             [transaction],

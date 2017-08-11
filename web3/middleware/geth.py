@@ -167,8 +167,9 @@ syncing_formatter = apply_formatters_to_dict(SYNCING_FORMATTERS)
 
 class GethFormattingMiddleware(BaseFormatterMiddleware):
     request_formatters = {
+        'eth_call': apply_formatter_at_index(transaction_params_formatter, 0),
         'eth_getBalance': apply_formatter_at_index(block_number_formatter, 1),
-        'eth_getCode': apply_formatter_at_index(block_number_formatter, 1),
+        'eth_getBlockByNumber': apply_formatter_at_index(block_number_formatter, 0),
         'eth_getBlockTransactionCountByNumber': apply_formatter_at_index(
             block_number_formatter,
             1,
@@ -177,6 +178,7 @@ class GethFormattingMiddleware(BaseFormatterMiddleware):
             block_number_formatter,
             1,
         ),
+        'eth_getCode': apply_formatter_at_index(block_number_formatter, 1),
         'eth_getStorageAt': compose(
             apply_formatter_at_index(hex, 1),
             apply_formatter_at_index(block_number_formatter, 2),
@@ -186,21 +188,22 @@ class GethFormattingMiddleware(BaseFormatterMiddleware):
             apply_formatter_at_index(hex, 1),
         ),
         'eth_getTransactionByBlockHashAndIndex': apply_formatter_at_index(hex, 1),
-        'eth_sendTransaction': apply_formatter_at_index(transaction_params_formatter, 0),
-        'eth_call': apply_formatter_at_index(transaction_params_formatter, 0),
-        'eth_getBlockByNumber': apply_formatter_at_index(block_number_formatter, 0),
         'eth_getTransactionCount': apply_formatter_at_index(block_number_formatter, 1),
+        'eth_sendTransaction': apply_formatter_at_index(transaction_params_formatter, 0),
     }
     result_formatters = {
-        'eth_gasPrice': hex_to_integer,
-        'eth_hashrate': hex_to_integer,
-        'eth_blockNumber': hex_to_integer,
         'eth_accounts': apply_formatter_to_iterable(bytes_to_ascii),
+        'eth_blockNumber': hex_to_integer,
+        'eth_coinbase': bytes_to_ascii,
+        'eth_estimateGas': hex_to_integer,
+        'eth_gasPrice': hex_to_integer,
+        'eth_getBlockByHash': block_formatter,
+        'eth_getBlockByNumber': block_formatter,
         'eth_getBlockTransactionCountByHash': hex_to_integer,
         'eth_getBlockTransactionCountByNumber': hex_to_integer,
-        'eth_coinbase': bytes_to_ascii,
         'eth_getCode': bytes_to_ascii,
-        'eth_getTransactionByHash': apply_formatter_if(transaction_formatter, is_not_null),
+        'eth_getFilterChanges': apply_formatter_to_array(log_entry_formatter),
+        'eth_getFilterLogs': apply_formatter_to_array(log_entry_formatter),
         'eth_getTransactionByBlockHashAndIndex': apply_formatter_if(
             transaction_formatter,
             is_not_null,
@@ -209,17 +212,14 @@ class GethFormattingMiddleware(BaseFormatterMiddleware):
             transaction_formatter,
             is_not_null,
         ),
+        'eth_getTransactionByHash': apply_formatter_if(transaction_formatter, is_not_null),
+        'eth_getTransactionCount': hex_to_integer,
         'eth_getTransactionReceipt': apply_formatter_if(
             receipt_formatter,
             is_not_null,
         ),
-        'eth_getTransactionCount': hex_to_integer,
-        'eth_sendTransaction': bytes_to_ascii,
+        'eth_hashrate': hex_to_integer,
         'eth_sendRawTransaction': bytes_to_ascii,
-        'eth_estimateGas': hex_to_integer,
-        'eth_getBlockByNumber': block_formatter,
-        'eth_getBlockByHash': block_formatter,
-        'eth_getFilterChanges': apply_formatter_to_array(log_entry_formatter),
-        'eth_getFilterLogs': apply_formatter_to_array(log_entry_formatter),
+        'eth_sendTransaction': bytes_to_ascii,
         'eth_syncing': apply_formatter_if(syncing_formatter, is_dict),
     }
