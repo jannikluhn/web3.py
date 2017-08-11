@@ -81,7 +81,6 @@ class Eth(object):
         raise NotImplementedError("Async calling has not been implemented")
 
     @property
-    @apply_formatters_to_return(to_decimal)
     def hashrate(self):
         return self.web3._requestManager.request_blocking("eth_hashrate", [])
 
@@ -96,7 +95,6 @@ class Eth(object):
         raise NotImplementedError("Async calling has not been implemented")
 
     @property
-    @coerce_return_to_text
     def accounts(self):
         return self.web3._requestManager.request_blocking("eth_accounts", [])
 
@@ -104,7 +102,6 @@ class Eth(object):
         raise NotImplementedError("Async calling has not been implemented")
 
     @property
-    @apply_formatters_to_return(to_decimal)
     def blockNumber(self):
         return self.web3._requestManager.request_blocking("eth_blockNumber", [])
 
